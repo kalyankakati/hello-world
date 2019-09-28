@@ -1,0 +1,191 @@
+For the following situation you do not have to write code, but give us an overview of your solution, database schema, important queries, data aggregation strategy, coding modules, any crons, and anything that you feel relevant to explain your solution
+We have a retail store that logs every visitor who visits the store. Every visitor's unique email id is noted down (which can change over time). We want to generate reports that gives,
+
+Visitor Table
+id  visitor_id e-mail visit_time
+
+
+a. For any hour (assume hour matches calendar hour - and user will query by giving start date as input parameter for this query) how many visitors were first time visitors vs repeat visitors (note, during the hour it is possible there is one visit by a new customer is first time visit but follow on visit by the same visitor is repeat visit)
+
+select T.visitor_id, T.[Hour], count(*) 
+from
+(
+  select
+	visitor_id,
+	select datapart(hour, visit_time) as [Hour]
+  from
+ 	Visitor
+  where 
+	visit_date = "Aug-08-2019"
+) T
+group by
+	T.[Hour]
+
+
+b. Is there particular block of 15 minutes interval when there are the most number of visitors (new and repeat combined) in a particular day and in a particular week (assume user will give any date mm-dd-yyyy as input parameter for both of these queries) (Please note, while considering the intervals, interval between 0 to 15 minutes as well as 1 to 16 minutes are valid and distinct 15 minute intervals)
+
+select visitor_id, Minute, Week, max(howMany) 
+from
+(
+  select
+	visitor_id,
+	select datapart(minute, visit_time) as [Minute],
+        select datapart(week, visit_time) as [Week],
+	count(*) as howMany
+  from
+ 	Visitor
+  where 
+	(Minute >= 0 and Minute <=15)
+	or
+	(Minute >= 1 and Minute <=16)
+	and
+	visit_date = "Aug-08-2019"
+  group by
+  (
+	visitor_id,
+	Minute, 
+	Week
+  )
+)
+
+
+c. Is there particular block of 5 minutes interval when there is most significant drop in number of visitors (new and repeat combined) from the immediate 5 minutes interval preceding this 5 minutes block of interval 
+
+select T.block from
+(
+select A.block, (A.visit_count - B.visit_count) as drop
+from
+(
+select
+  case MOD(datapart(minute, visit_time), 5)
+	When 0 Then datapart(minute, visit_time)/5 - 1
+	else datapart(minute, visit_time)/5,
+	count(*) as visit_count
+  end as block
+from Visitor
+group by block
+) A,
+(
+select
+  case MOD(datapart(minute, visit_time), 5)
+	When 0 Then datapart(minute, visit_time)/5 - 1
+	else datapart(minute, visit_time)/5,
+	count(*) as visit_count
+  end as block
+from Visitor
+group by block
+) B
+where A.block=B.block-1
+)as T 
+where
+T.drop = 
+(select max(drop) from T)
+
+ 
+Please write Java code with mysql queries (as needed) for the following simple problem.
+
+Problem 1 :
+You have a table called member which has 3 columns email, age_as_integer, gender - email is the primary key and age value is integer like 20, 30 , 40, 41, etc 
+
+a. We want to find out in this table which age has the most number of members
+so let's say we have 50 records with age 20, and 60 with age 21, and 55 with age 23 and so on you need to get the answer 21 given that is the age for most number of members.
+
+select age_as_integer
+from
+(select age_as_integer, count(*) member_count
+  from member
+  group by age_as_integer
+) T
+where T.member_count = (
+select max(member_count) from T
+)
+
+
+public static void main(String args[]){  
+  try{  
+	Class.forName("com.mysql.jdbc.Driver");  
+	Connection con=DriverManager.getConnection(  
+		"jdbc:mysql://localhost:3306/db","username","password");  
+
+	String SQLStmt = "select age_as_integer
+                          from
+                          (
+			   select age_as_integer, count(*) member_count
+                           from member
+                           group by age_as_integer
+                          ) T
+                          where 
+                          T.member_count = (
+                                             select max(member_count) from T
+                          )";
+	 
+	Statement stmt=con.createStatement();  
+	ResultSet rs=stmt.executeQuery(SQLStmt);  
+
+	while(rs.next())  
+		System.out.println("Max count with age_as_integer: " + rs.getInt(1));  
+
+	con.close();  
+  }
+  catch(Exception ex){ 
+	System.out.println(ex);
+  }  
+}  
+
+b. As a next step, we want to find a band of 5 years where we have most number of profiles so it can be age 1 to age 5 or age 2 to age 6 or age 15 to age 20 - any band of 5 yrs
+where we have the most number of profiles (note number of members in a particular 5 year band are the sum of count of profiles associated with per year in that band of 5 years) 
+
+select T.band, count(*) as band_count
+from
+(
+     select email, age_as_integer, gender, band=
+	case
+	when age_of_integer 1 and 5 then '1-5'
+	when age_of_integer 6 and 10 then '6-10'
+	when age_of_integer 11 and 15 then '11-15'
+	...
+	when age_of_integer 85 and 90 then '85-90'
+	when age_of_integer 91 and 95 then '91-95'
+	else '96-100' end as band
+      from member
+) T
+group by T.band
+having band_count = (select max(bank_count) from T)
+
+public static void main(String args[]){  
+  try{  
+	Class.forName("com.mysql.jdbc.Driver");  
+	Connection con=DriverManager.getConnection(  
+		"jdbc:mysql://localhost:3306/db","username","password");  
+
+	String SQLStmt = "select T.band, count(*) as band_count
+				from
+				(
+     					select email, age_as_integer, gender, band=
+						case
+							when age_of_integer 1 and 5 then '1-5'
+							when age_of_integer 6 and 10 then '6-10'
+							when age_of_integer 11 and 15 then '11-15'
+							...
+							when age_of_integer 85 and 90 then '85-90'
+							when age_of_integer 91 and 95 then '91-95'
+							else '96-100' end as band
+      					from member
+				) T
+				group by T.band
+				having band_count = (
+					select max(bank_count) from T
+				)";
+	 
+	Statement stmt=con.createStatement();  
+	ResultSet rs=stmt.executeQuery(SQLStmt);  
+
+	while(rs.next())  
+		System.out.println("Max count with age_as_integer: " + rs.getInt(1));  
+
+	con.close();  
+  }
+  catch(Exception ex){ 
+	System.out.println(ex);
+  }  
+}  
