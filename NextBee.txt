@@ -1,6 +1,9 @@
 For the following situation you do not have to write code, but give us an overview of your solution, database schema, important queries, data aggregation strategy, coding modules, any crons, and anything that you feel relevant to explain your solution
 We have a retail store that logs every visitor who visits the store. Every visitor's unique email id is noted down (which can change over time). We want to generate reports that gives,
 
+
+//Testing Git Push
+
 Visitor Table
 id  visitor_id e-mail visit_time
 
